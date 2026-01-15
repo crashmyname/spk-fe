@@ -1,42 +1,72 @@
-import type { UserApiResponse, payloadUser, User } from "$lib/types/user"
+import type { UserApiResponse, payloadUser, User, ErrorResponse } from "$lib/types/user"
+import { apiFetch } from "./api"
 
-const BASE_URL = 'http://localhost:8080/api'
-
-export async function getUsers(): Promise<User[]>{
-    const res = await fetch(`${BASE_URL}/users`)
-    if (!res.ok){
-        throw new Error("Failed to fetch users")
-    }
-    const json: UserApiResponse = await res.json()
-
-    return json.data
-}
-
-export async function createUser(data : payloadUser): Promise<User>{
-    const res = await fetch(`${BASE_URL}/users`,{
-        method: 'POST',
-        headers: {
-            'Content-Type': "application/json"
-        },
-        body: JSON.stringify(data)
+export async function getUsers(page=1,limit=10, search = ''): Promise<UserApiResponse>{
+    const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit)
     })
-
-    if(!res.ok){
-        const err = await res.json()
-        throw new Error("failed create user "+ "("+err?.error+")")
-    }
-
-    return await res.json()
+    if(search) params.append('search',search)
+    return await apiFetch<UserApiResponse>(`/api/users?${params.toString()}`)
 }
 
-export async function getUserById(id: string){
-    const res = await fetch(`${BASE_URL}/user/${id}`)
-
-    if(!res.ok){
-        throw new Error("Failed get user")
+export async function createUser(data: payloadUser): Promise<{ user: User, message: string }>{
+    try {
+        const res = await apiFetch<UserApiResponse>('/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        return {
+            user: res.data as User,
+            message: res.message || 'User created successfully'
+        }
+    } catch (error) {
+        throw error
     }
+}
 
-    const json = await res.json()
+export async function getUserById(id: string): Promise<User>{
+    try {
+        const res = await apiFetch<UserApiResponse>(`/api/user/${id}`)
+        return res.data as User
+    } catch (error) {
+        throw error
+    }
+}
 
-    return json.data
+export async function updateUser(id: string, data: payloadUser): Promise<{user: User, message: string}>{
+    try {
+        const res = await apiFetch<UserApiResponse>(`/api/user/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        return {
+            user: res.data as User,
+            message: res.message || 'User updated successfully'
+        }
+    } catch (error) {
+        throw error
+    }
+}
+
+export async function deleteUser(id: string): Promise<{message: string}> {
+    try {
+        const result = await apiFetch<UserApiResponse>(`/api/user/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type' : "application/json"
+            }
+        })
+        return {
+            message: result.message || 'User Deleted'
+        }
+    } catch (error){
+        throw(error)
+    }
 }

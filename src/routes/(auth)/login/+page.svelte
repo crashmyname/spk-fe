@@ -3,7 +3,7 @@
 	<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet" />
 </svelte:head>
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { setAuth } from '$lib/stores/auth';
 	import logo from '$lib/assets/logo spk mdf.png';
 
@@ -16,14 +16,15 @@
 		error = '';
 		loading = true;
 
-		const res = await fetch('http://localhost:8080/api/auth/login', {
+		const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
 			body: JSON.stringify({ username, password })
 		});
 
 		const data = await res.json();
-
+		
 		if (!res.ok) {
 			error = data.error;
 			loading = false;
@@ -31,7 +32,8 @@
 		}
 
 		setAuth(data);
-		await goto('/users');
+		await invalidateAll()
+		await goto('/');
 		loading = false;
 	}
 </script>
